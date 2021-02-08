@@ -328,15 +328,16 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div id="getting-data" class="section level1">
 <h1>Getting data</h1>
 <p>The labelled points data are stored in <code>SSCT_data</code>. The function <code>to_spatial()</code> transform the <code>data.frame</code> into <code>sp</code> object.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>SSCT_data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">to_spatial</span>()</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="co">#&gt; class       : SpatialPointsDataFrame </span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="co">#&gt; features    : 1012 </span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="co">#&gt; extent      : -124.3656, -115.2584, 32.75321, 41.9468  (xmin, xmax, ymin, ymax)</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="co">#&gt; crs         : +proj=longlat +datum=WGS84 +no_defs </span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="co">#&gt; variables   : 2</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="co">#&gt; names       :          SiteID, ward </span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a><span class="co">#&gt; min values  :    K_CH_1_00458,    1 </span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a><span class="co">#&gt; max values  : SJT_UL_5_113860,   10</span></span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>labelled_points &lt;-<span class="st"> </span>SSCT_data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">to_spatial</span>()</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>one_random_point &lt;-<span class="st"> </span>labelled_points <span class="op">%&gt;%</span><span class="st"> </span>sf<span class="op">::</span><span class="kw">st_as_sf</span>() <span class="op">%&gt;%</span><span class="st"> </span>dplyr<span class="op">::</span><span class="kw">sample_n</span>(<span class="dv">1</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>one_random_point</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="co">#&gt; Simple feature collection with 1 feature and 2 fields</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="co">#&gt; geometry type:  POINT</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="co">#&gt; dimension:      XY</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="co">#&gt; bbox:           xmin: -120.706 ymin: 39.7405 xmax: -120.706 ymax: 39.7405</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a><span class="co">#&gt; CRS:            +proj=longlat +datum=WGS84 +no_defs</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a><span class="co">#&gt;              SiteID ward                 geometry</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a><span class="co">#&gt; 1 SAC_LSR_518SED082    4 POINT (-120.706 39.7405)</span></span></code></pre></div>
 </div>
 <div id="loading-sen2r" class="section level1">
 <h1>Loading <code>sen2r</code></h1>
@@ -345,6 +346,52 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="co">#&gt;  &gt; sen2r()</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="co">#&gt; Documentation: http://sen2r.ranghetti.info</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a><span class="co">#&gt; Help and bug report: https://github.com/ranghetti/sen2r/issues</span></span></code></pre></div>
+</div>
+<div id="listing-s2-products" class="section level1">
+<h1>Listing S2 products</h1>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">write_scihub_login</span>(<span class="st">&quot;hguillon&quot;</span>, <span class="st">&quot;AIg34morph&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">s2_list</span>(one_random_point)</span></code></pre></div>
+</div>
+<div id="appendix" class="section level1">
+<h1>Appendix</h1>
+<div id="description-of-sentinel-2-msi-products" class="section level2">
+<h2>Description of Sentinel-2 MSI products</h2>
+<blockquote>
+<ol start="0" style="list-style-type: decimal">
+<li>Level-0 is compressed raw data. The Level-0 product contains all the information required to generate the Level-1 (and upper) product levels.</li>
+<li>Level-1</li>
+</ol>
+<ul>
+<li>Level-1A is uncompressed raw data with spectral bands coarsely coregistered and ancillary data appended.</li>
+<li>Level-1B data is radiometrically corrected radiance data. The physical geometric model is refined using available ground control points and appended to the product, but not applied.</li>
+<li>Level-1C product provides orthorectified Top-Of-Atmosphere (TOA) reflectance, with sub-pixel multispectral registration. Cloud and land/water masks are included in the product.</li>
+</ul>
+<ol start="2" style="list-style-type: decimal">
+<li>Level-2A product provides orthorectified Bottom-Of-Atmosphere (BOA) reflectance, with sub-pixel multispectral registration. A Scene Classification map (cloud, cloud shadows, vegetation, soils/deserts, water, snow, etc.) is included in the product.</li>
+</ol>
+</blockquote>
+<p>from <a href="https://dragon3.esa.int/web/sentinel/technical-guides/sentinel-2-msi/products-algorithms">S2 MSI technical guide</a></p>
+</div>
+<div id="safe-format" class="section level2">
+<h2>SAFE format</h2>
+<blockquote>
+<p>The SAFE format has been designed to act as a common format for archiving and conveying data within ESA Earth Observation archiving facilities. The SAFE format wraps a folder containing image data in a binary data format and product metadata in XML. This flexibility allows the format to be scalable enough to represent all levels of SENTINEL products.</p>
+</blockquote>
+<blockquote>
+<p>A SENTINEL-2 product refers to a directory folder that contains a collection of information (Figure 1). It includes:</p>
+</blockquote>
+<blockquote>
+<ul>
+<li>a manifest.safe file which holds the general product information in XML</li>
+<li>a preview image in JPEG2000 format</li>
+<li>subfolders for measurement datasets including image data (granules/tiles) in GML-JPEG2000 format</li>
+<li>subfolders for datastrip level information</li>
+<li>a subfolder with auxiliary data (e.g. International Earth Rotation &amp; Reference Systems (IERS) bulletin)</li>
+<li>HTML previews</li>
+</ul>
+</blockquote>
+<p>from <a href="https://dragon3.esa.int/web/sentinel/user-guides/sentinel-2-msi/data-formats">S2 MSI data formats</a></p>
+</div>
 </div>
 
 

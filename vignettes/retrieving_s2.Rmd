@@ -37,10 +37,39 @@ library(sen2r)
 
 # Listing S2 products
 
-```{r api passwd}
+
+```{r api passwd, eval = FALSE}
 write_scihub_login("hguillon", "AIg34morph")
 ```
 
-```{r}
+```{r, eval = FALSE}
 s2_list(one_random_point)
 ```
+
+# Appendix 
+
+## Description of Sentinel-2 MSI products
+
+> 0. Level-0 is compressed raw data. The Level-0 product contains all the information required to generate the Level-1 (and upper) product levels.
+> 1. Level-1
+> 	+ Level-1A is uncompressed raw data with spectral bands coarsely coregistered and ancillary data appended.
+> 	+ Level-1B data is radiometrically corrected radiance data. The physical geometric model is refined using available ground control points and appended to the product, but not applied.
+> 	+ Level-1C product provides orthorectified Top-Of-Atmosphere (TOA) reflectance, with sub-pixel multispectral registration. Cloud and land/water masks are included in the product.
+> 2. Level-2A product provides orthorectified Bottom-Of-Atmosphere (BOA) reflectance, with sub-pixel multispectral registration. A Scene Classification map (cloud, cloud shadows, vegetation, soils/deserts, water, snow, etc.) is included in the product.
+
+from [S2 MSI technical guide](https://dragon3.esa.int/web/sentinel/technical-guides/sentinel-2-msi/products-algorithms)
+
+## SAFE format
+
+> The SAFE format has been designed to act as a common format for archiving and conveying data within ESA Earth Observation archiving facilities. The SAFE format wraps a folder containing image data in a binary data format and product metadata in XML. This flexibility allows the format to be scalable enough to represent all levels of SENTINEL products.
+
+> A SENTINEL-2 product refers to a directory folder that contains a collection of information (Figure 1). It includes:
+
+> - a manifest.safe file which holds the general product information in XML
+> - a preview image in JPEG2000 format
+> - subfolders for measurement datasets including image data (granules/tiles) in GML-JPEG2000 format
+> - subfolders for datastrip level information
+> - a subfolder with auxiliary data (e.g. International Earth Rotation & Reference Systems (IERS) bulletin)
+> - HTML previews
+
+from [S2 MSI data formats](https://dragon3.esa.int/web/sentinel/user-guides/sentinel-2-msi/data-formats)
