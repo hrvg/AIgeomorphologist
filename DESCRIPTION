@@ -1,0 +1,22 @@
+Package: AIgeomorphologist
+Title: Artificial Intelligence for Geomorphology
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Hervé",
+           family = "Guillon",
+           role = c("aut", "cre"),
+           email = "first.last@example.com",
+           comment = c(ORCID = "0000-0002-6297-8253"))
+Description: This package supports function of artificial intelligence for image recognition. This package is temporary and will be integrated into RiverML.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Imports: 
+    magrittr,
+    sen2r,
+    sp
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

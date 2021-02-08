@@ -1,0 +1,46 @@
+---
+title: "retrieving sentinel 2 products"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{retrieving sentinel 2 products}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = TRUE
+)
+```
+
+```{r, include = FALSE}
+devtools::load_all()
+```
+
+# Getting data
+
+The labelled points data are stored in `SSCT_data`. The function `to_spatial()` transform the `data.frame` into `sp` object.
+
+```{r get points}
+labelled_points <- SSCT_data %>% to_spatial()
+one_random_point <- labelled_points %>% sf::st_as_sf() %>% dplyr::sample_n(1)
+one_random_point
+```
+
+# Loading `sen2r`
+
+```{r libraries}
+library(sen2r)
+```
+
+# Listing S2 products
+
+```{r api passwd}
+write_scihub_login("hguillon", "AIg34morph")
+```
+
+```{r}
+s2_list(one_random_point)
+```

@@ -1,0 +1,10 @@
+---
+title: "AI geomorphologist"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{AI geomorphologist}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This is how you start.

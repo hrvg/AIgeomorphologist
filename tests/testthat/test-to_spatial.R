@@ -1,0 +1,11 @@
+test_that("to_spatial works", {
+  expect_error(to_spatial("spatial_data", "`spatial_data` should be a `data.frame`"))
+  test_df <- data.frame(POINT_X = 40, POINT_Y = 120)
+  expect_error(to_spatial(test_df, coordx = "wrongx"), "wrongx not found in `spatial_data`")
+  expect_error(to_spatial(test_df, coordy = "wrongy"), "wrongy not found in `spatial_data`")
+  expect_s4_class(to_spatial(SSCT_data), "SpatialPointsDataFrame")
+  res <- to_spatial(SSCT_data)
+  coords <- sp::coordinates(res)
+  expect_equal(coords[, 1], SSCT_data$POINT_X)
+  expect_equal(coords[, 2], SSCT_data$POINT_Y)
+})
