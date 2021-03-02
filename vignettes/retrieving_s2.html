@@ -38,7 +38,14 @@ document.addEventListener('DOMContentLoaded', function(e) {
     </style>
 
 
-<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
 <style type="text/css" data-origin="pandoc">
 pre > code.sourceCode { white-space: pre; position: relative; }
 pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
@@ -328,16 +335,17 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div id="getting-data" class="section level1">
 <h1>Getting data</h1>
 <p>The labelled points data are stored in <code>SSCT_data</code>. The function <code>to_spatial()</code> transform the <code>data.frame</code> into <code>sp</code> object.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>labelled_points &lt;-<span class="st"> </span>SSCT_data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">to_spatial</span>()</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>one_random_point &lt;-<span class="st"> </span>labelled_points <span class="op">%&gt;%</span><span class="st"> </span>sf<span class="op">::</span><span class="kw">st_as_sf</span>() <span class="op">%&gt;%</span><span class="st"> </span>dplyr<span class="op">::</span><span class="kw">sample_n</span>(<span class="dv">1</span>)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>one_random_point</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="co">#&gt; Simple feature collection with 1 feature and 2 fields</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="co">#&gt; geometry type:  POINT</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="co">#&gt; dimension:      XY</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="co">#&gt; bbox:           xmin: -120.706 ymin: 39.7405 xmax: -120.706 ymax: 39.7405</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a><span class="co">#&gt; CRS:            +proj=longlat +datum=WGS84 +no_defs</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a><span class="co">#&gt;              SiteID ward                 geometry</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a><span class="co">#&gt; 1 SAC_LSR_518SED082    4 POINT (-120.706 39.7405)</span></span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>labelled_points &lt;-<span class="st"> </span>SSCT_data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">to_spatial</span>() </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="co"># labelled_circles &lt;-  raster::buffer(labelled_points, 500, dissolve = FALSE) %&gt;% sf::st_as_sf()</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>one_random_circle &lt;-<span class="st"> </span>labelled_points <span class="op">%&gt;%</span><span class="st"> </span>sf<span class="op">::</span><span class="kw">st_as_sf</span>() <span class="op">%&gt;%</span><span class="st"> </span>dplyr<span class="op">::</span><span class="kw">sample_n</span>(<span class="dv">1</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>one_random_circle</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="co">#&gt; Simple feature collection with 1 feature and 2 fields</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="co">#&gt; geometry type:  POINT</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="co">#&gt; dimension:      XY</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a><span class="co">#&gt; bbox:           xmin: -122.2725 ymin: 37.1118 xmax: -122.2725 ymax: 37.1118</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a><span class="co">#&gt; CRS:            +proj=longlat +datum=WGS84 +no_defs</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a><span class="co">#&gt;          SiteID ward                  geometry</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a><span class="co">#&gt; 1 SCC_PH_2_9573    9 POINT (-122.2725 37.1118)</span></span></code></pre></div>
 </div>
 <div id="loading-sen2r" class="section level1">
 <h1>Loading <code>sen2r</code></h1>
@@ -349,8 +357,92 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="listing-s2-products" class="section level1">
 <h1>Listing S2 products</h1>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">write_scihub_login</span>(<span class="st">&quot;hguillon&quot;</span>, <span class="st">&quot;AIg34morph&quot;</span>)</span></code></pre></div>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="kw">s2_list</span>(one_random_point)</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>s2_products &lt;-<span class="st"> </span><span class="kw">s2_list</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>    <span class="dt">spatial_extent =</span> one_random_circle,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>    <span class="dt">time_interval =</span> <span class="kw">c</span>(<span class="st">&quot;2017-06-01&quot;</span>, <span class="st">&quot;2018-10-01&quot;</span>),</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>    <span class="dt">time_period =</span> <span class="st">&quot;seasonal&quot;</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>    <span class="dt">level =</span> <span class="st">&quot;auto&quot;</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>    <span class="dt">max_cloud =</span> <span class="dv">5</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a><span class="co">#&gt; although coordinates are longitude/latitude, st_union assumes that they are planar</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a><span class="kw">print</span>(s2_products)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a><span class="co">#&gt; A named vector with 8 SAFE archives.</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a><span class="co">#&gt;                                      S2A_MSIL1C_20170719T190351_N0205_R113_T10SEG_20170719T190350.SAFE </span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a><span class="co">#&gt; &quot;https://scihub.copernicus.eu/apihub/odata/v1/Products(&#39;1d95e6df-492c-4a38-af04-e9fa91caa648&#39;)/$value&quot; </span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a><span class="co">#&gt;                                      S2B_MSIL1C_20170902T184909_N0205_R113_T10SEG_20170902T185809.SAFE </span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a><span class="co">#&gt; &quot;https://scihub.copernicus.eu/apihub/odata/v1/Products(&#39;df2b0e78-b2de-4aa5-a608-1970f4ac8a61&#39;)/$value&quot; </span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a><span class="co">#&gt;                                      S2A_MSIL1C_20170917T190351_N0205_R113_T10SEG_20170917T190345.SAFE </span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true"></a><span class="co">#&gt; &quot;https://scihub.copernicus.eu/apihub/odata/v1/Products(&#39;ed2ca0e1-f206-43fd-ab12-98c3f76b1736&#39;)/$value&quot; </span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true"></a><span class="co">#&gt;                                      S2B_MSIL1C_20170922T185049_N0205_R113_T10SEG_20170922T185630.SAFE </span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true"></a><span class="co">#&gt; &quot;https://scihub.copernicus.eu/apihub/odata/v1/Products(&#39;6f9cde1a-1beb-48ad-94ea-d2fe9db966d4&#39;)/$value&quot; </span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true"></a><span class="co">#&gt;                                      S2A_MSIL1C_20170927T185131_N0205_R113_T10SEG_20170927T185820.SAFE </span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true"></a><span class="co">#&gt; &quot;https://scihub.copernicus.eu/apihub/odata/v1/Products(&#39;adf95ba2-ca73-4edf-96e8-20c618bade3d&#39;)/$value&quot; </span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true"></a><span class="co">#&gt; ...with 3 more elements.</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true"></a><span class="co">#&gt; The following attributes are included: mission, level, id_tile, id_orbit, sensing_datetime, ingestion_datetime, clouds, footprint, uuid, online.</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true"></a><span class="kw">safe_getMetadata</span>(s2_products, <span class="st">&quot;sensing_datetime&quot;</span>)   </span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true"></a><span class="co">#&gt; S2A_MSIL1C_20170719T190351_N0205_R113_T10SEG_20170719T190350.SAFE </span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true"></a><span class="co">#&gt;                                         &quot;2017-07-19 19:03:51 UTC&quot; </span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true"></a><span class="co">#&gt; S2B_MSIL1C_20170902T184909_N0205_R113_T10SEG_20170902T185809.SAFE </span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true"></a><span class="co">#&gt;                                         &quot;2017-09-02 18:49:09 UTC&quot; </span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true"></a><span class="co">#&gt; S2A_MSIL1C_20170917T190351_N0205_R113_T10SEG_20170917T190345.SAFE </span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true"></a><span class="co">#&gt;                                         &quot;2017-09-17 19:03:51 UTC&quot; </span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true"></a><span class="co">#&gt; S2B_MSIL1C_20170922T185049_N0205_R113_T10SEG_20170922T185630.SAFE </span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true"></a><span class="co">#&gt;                                         &quot;2017-09-22 18:50:49 UTC&quot; </span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true"></a><span class="co">#&gt; S2A_MSIL1C_20170927T185131_N0205_R113_T10SEG_20170927T185820.SAFE </span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true"></a><span class="co">#&gt;                                         &quot;2017-09-27 18:51:31 UTC&quot; </span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true"></a><span class="co">#&gt; S2A_MSIL1C_20180604T184921_N0206_R113_T10SEG_20180605T000320.SAFE </span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true"></a><span class="co">#&gt;                                         &quot;2018-06-04 18:49:21 UTC&quot; </span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true"></a><span class="co">#&gt; S2B_MSIL1C_20180629T184919_N0206_R113_T10SEG_20180629T205227.SAFE </span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true"></a><span class="co">#&gt;                                         &quot;2018-06-29 18:49:19 UTC&quot; </span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true"></a><span class="co">#&gt; S2B_MSIL1C_20180709T185019_N0206_R113_T10SEG_20180709T235048.SAFE </span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true"></a><span class="co">#&gt;                                         &quot;2018-07-09 18:50:19 UTC&quot;</span></span></code></pre></div>
+</div>
+<div id="products" class="section level1">
+<h1>Products</h1>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="co"># Set paths</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>out_dir_<span class="dv">1</span>  &lt;-<span class="st"> </span><span class="kw">tempfile</span>(<span class="dt">pattern =</span> <span class="st">&quot;sen2r_out_1_&quot;</span>) <span class="co"># output folder</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>safe_dir &lt;-<span class="st"> </span><span class="kw">tempfile</span>(<span class="dt">pattern =</span> <span class="st">&quot;sen2r_safe_&quot;</span>)  <span class="co"># folder to store downloaded SAFE</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>out_paths_<span class="dv">1</span> &lt;-<span class="st"> </span><span class="kw">sen2r</span>(</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>  <span class="dt">gui =</span> <span class="ot">FALSE</span>,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>  <span class="dt">sel_sensor =</span> <span class="kw">c</span>(<span class="st">&quot;s2a&quot;</span>, <span class="st">&quot;s2b&quot;</span>),</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>  <span class="dt">timewindow =</span> <span class="kw">c</span>(<span class="kw">as.Date</span>(<span class="st">&quot;2017-06-01&quot;</span>), <span class="kw">as.Date</span>(<span class="st">&quot;2018-10-01&quot;</span>)),</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>  <span class="dt">timeperiod =</span> <span class="st">&quot;seasonal&quot;</span>,</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>  <span class="dt">max_cloud_safe =</span> <span class="dv">0</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a>  <span class="dt">list_prods =</span> <span class="kw">c</span>(<span class="st">&quot;BOA&quot;</span>,<span class="st">&quot;SCL&quot;</span>),</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true"></a>  <span class="dt">list_rgb =</span> <span class="kw">c</span>(<span class="st">&quot;RGB432B&quot;</span>),</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true"></a>  <span class="dt">list_indices =</span> <span class="kw">c</span>(<span class="st">&quot;NDVI&quot;</span>),</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true"></a>  <span class="dt">extent =</span> one_random_circle,</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true"></a>  <span class="dt">clip_on_extent =</span> <span class="ot">TRUE</span>,</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true"></a>  <span class="dt">path_l2a =</span> safe_dir,</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true"></a>  <span class="dt">path_out =</span> out_dir_<span class="dv">1</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true"></a>)</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true"></a><span class="co">#&gt; [2021-03-01 15:19:58] #### Starting sen2r execution. ####</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true"></a><span class="co">#&gt; Warning: &#39;geojsonlint&#39; not installed, skipping GeoJSON linting</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true"></a><span class="co">#&gt; [2021-03-01 15:19:59] Searching for available SAFE products on</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true"></a><span class="co">#&gt;        SciHub...</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true"></a><span class="co">#&gt; although coordinates are longitude/latitude, st_union assumes that they are planar</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true"></a><span class="co">#&gt; [2021-03-01 15:20:03] Ordering 2 Sentinel-2 images stored in the Long</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true"></a><span class="co">#&gt;        Term Archive...</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true"></a><span class="co">#&gt; [2021-03-01 15:20:05] 2 of 2 Sentinel-2 images were correctly ordered.</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true"></a><span class="co">#&gt; ╔══════════════════════════════════════════════════════════════════════</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true"></a><span class="co">#&gt; ║ sen2r Processing Report</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true"></a><span class="co">#&gt; ╟──────────────────────────────────────────────────────────────────────</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true"></a><span class="co">#&gt; ║ Dates to be processed based on processing parameters: 2</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true"></a><span class="co">#&gt; ║ Processing completed for: 0 out of 2 expected dates.</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true"></a><span class="co">#&gt; ║ Outputs for: 2 out of 2 expected dates not created because all/some</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true"></a><span class="co">#&gt; ║ required images are currently offline.</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true"></a><span class="co">#&gt; ║ Order for: 2 out of 2 offline images successfull.</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true"></a><span class="co">#&gt; ║ You can check later if the ordered images are online with the</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true"></a><span class="co">#&gt; ║ command:</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true"></a><span class="co">#&gt; ║   safe_is_online(&quot;/home/hguillon/.sen2r/lta_orders/lta_20210301_152005.json&quot;)</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true"></a><span class="co">#&gt; ║ When additional images are online, you can relaunch the processing</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true"></a><span class="co">#&gt; ║ chain using the command:</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true"></a><span class="co">#&gt; ║   sen2r(&quot;/home/hguillon/.sen2r/proc_par/s2proc_20210301_151958.json&quot;)</span></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true"></a><span class="co">#&gt; Warning: Processing was not completed because some required images are offline</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true"></a><span class="co">#&gt; (see the processing log).</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true"></a><span class="co">#&gt; ╚══════════════════════════════════════════════════════════════════════</span></span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true"></a><span class="co">#&gt; [2021-03-01 15:20:05] #### sen2r session terminated. ####</span></span></code></pre></div>
 </div>
 <div id="appendix" class="section level1">
 <h1>Appendix</h1>

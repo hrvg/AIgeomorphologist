@@ -24,7 +24,7 @@ devtools::load_all()
 The labelled points data are stored in `SSCT_data`. The function `to_spatial()` transform the `data.frame` into `sp` object.
 
 ```{r get points}
-labelled_points <- SSCT_data %>% to_spatial()
+labelled_points <- SSCT_data %>% to_spatial() 
 one_random_point <- labelled_points %>% sf::st_as_sf() %>% dplyr::sample_n(1)
 one_random_point
 ```
@@ -38,12 +38,42 @@ library(sen2r)
 # Listing S2 products
 
 
-```{r api passwd, eval = FALSE}
-write_scihub_login("hguillon", "AIg34morph")
+```{r s2_list}
+s2_products <- s2_list(
+	spatial_extent = one_random_point,
+	time_interval = c("2017-06-01", "2018-10-01"),
+	time_period = "seasonal",
+	level = "auto",
+	max_cloud = 0
+)
+print(s2_products)
+safe_getMetadata(s2_products, "sensing_datetime")	
 ```
 
-```{r, eval = FALSE}
-s2_list(one_random_point)
+
+# Products
+
+```{r download, eval = TRUE}
+# Set paths
+out_dir  <- "/media/hguillon/hrvg/research/data/s2/sen2r_output/" # output folder
+safe_dir <- "/media/hguillon/hrvg/research/data/s2/sen2r_safe/" # folder to store downloaded SAFE
+
+paths <- sen2r(
+  gui = FALSE,
+  sel_sensor = c("s2a", "s2b"),
+  timewindow = c(as.Date("2019-06-01"), as.Date("2020-10-01")),
+  timeperiod = "seasonal",
+  step_atmcorr = "l2a",
+  max_cloud_safe = 20,
+  list_prods = c("BOA","SCL"),
+  list_rgb = c("RGB432B"),
+  list_indices = c("NDVI"),
+  extent = one_random_point,
+  path_l1c = safe_dir,
+  path_l2a = safe_dir,
+  path_out = out_dir,
+  order_lta = FALSE
+)
 ```
 
 # Appendix 
