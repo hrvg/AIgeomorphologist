@@ -29,6 +29,16 @@ one_random_point <- labelled_points %>% sf::st_as_sf() %>% dplyr::sample_n(1)
 one_random_point
 ```
 
+```{r pol}
+one_random_polygon <- raster::buffer(one_random_point %>% 
+	as("Spatial"), 500) %>% 
+	raster::extent() %>% 
+	as("SpatialPolygons") %>% 
+	sf::st_as_sf() %>% 
+	geojsonsf::sf_geojson()
+```
+
+
 # Loading `sen2r`
 
 ```{r libraries}
@@ -41,10 +51,11 @@ library(sen2r)
 ```{r s2_list}
 s2_products <- s2_list(
 	spatial_extent = one_random_point,
-	time_interval = c("2017-06-01", "2018-10-01"),
-	time_period = "seasonal",
-	level = "auto",
-	max_cloud = 0
+	time_interval = c(as.Date("2020-06-01"), as.Date("2020-10-01")),
+	time_period = "full",
+	level = "L2A",
+	availability = "online",
+	max_cloud = 0.1
 )
 print(s2_products)
 safe_getMetadata(s2_products, "sensing_datetime")	
@@ -55,8 +66,8 @@ safe_getMetadata(s2_products, "sensing_datetime")
 
 ```{r download, eval = TRUE}
 # Set paths
-out_dir  <- "/media/hguillon/hrvg/research/data/s2/sen2r_output/" # output folder
-safe_dir <- "/media/hguillon/hrvg/research/data/s2/sen2r_safe/" # folder to store downloaded SAFE
+out_dir  <- "F:/hguillon/research/data/s2/sen2r_output/" # output folder
+safe_dir <- "F:/hguillon/research/data/s2/sen2r_safe/" # folder to store downloaded SAFE
 
 paths <- sen2r(
   gui = FALSE,
@@ -64,15 +75,16 @@ paths <- sen2r(
   timewindow = c(as.Date("2019-06-01"), as.Date("2020-10-01")),
   timeperiod = "seasonal",
   step_atmcorr = "l2a",
-  max_cloud_safe = 20,
+  max_cloud_safe = 0.1,
   list_prods = c("BOA","SCL"),
   list_rgb = c("RGB432B"),
   list_indices = c("NDVI"),
-  extent = one_random_point,
+  extent = one_random_polygon,
   path_l1c = safe_dir,
   path_l2a = safe_dir,
   path_out = out_dir,
-  order_lta = FALSE
+  order_lta = FALSE,
+  clip_on_extent = TRUE
 )
 ```
 
