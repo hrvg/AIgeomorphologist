@@ -1,0 +1,3 @@
+navbar:
+  structure:
+    left:  [home, intro, articles, reference, news]
