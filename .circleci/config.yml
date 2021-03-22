@@ -1,3 +1,8 @@
+version: 2.1
+
+orbs:
+  gh-pages: sugarshin/gh-pages@0.0.6
+
 jobs:
   build_test_deploy: # name of your job
     machine: # executor type
@@ -5,18 +10,6 @@ jobs:
 
     steps:
       - checkout
-      - run:
-          name: Install R
-          command: |
-            sudo apt-get -y install r-base
-            sudo apt-get -y install r-cran-rgl
-      - run:
-          name: Create local library folder
-          command: |
-            R -e "dir.create(path = Sys.getenv('R_LIBS_USER'), showWarnings = FALSE, recursive = TRUE)"
-      - restore_cache:
-          keys: 
-          - cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "DESCRIPTION" }}
       - run: 
           name: Install GIS libraries
           command: |
@@ -35,6 +28,18 @@ jobs:
           command: |
             sudo apt-get -y install git libssl-dev ssh texlive-latex-base texlive-fonts-recommended libcurl4-openssl-dev libxml2-dev
             sudo apt-get -y install pandoc pandoc-citeproc
+      - run:
+          name: Install R
+          command: |
+            sudo apt-get -y install r-base
+            sudo apt-get -y install r-cran-rgl
+      - run:
+          name: Create local library folder
+          command: |
+            R -e "dir.create(path = Sys.getenv('R_LIBS_USER'), showWarnings = FALSE, recursive = TRUE)"
+      - restore_cache:
+          keys: 
+          - cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "DESCRIPTION" }}
       - run:
           name: Install devtools and Roxygen
           command: R -e "install.packages(c('devtools', 'roxygen2'), lib = Sys.getenv('R_LIBS_USER'))"
@@ -72,18 +77,6 @@ jobs:
 
     steps:
       - checkout
-      - run:
-          name: Install R
-          command: |
-            sudo apt-get -y install r-base
-            sudo apt-get -y install r-cran-rgl
-      - run:
-          name: Create local library folder
-          command: |
-            R -e "dir.create(path = Sys.getenv('R_LIBS_USER'), showWarnings = FALSE, recursive = TRUE)"
-      - restore_cache:
-          keys: 
-          - cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "DESCRIPTION" }}
       - run: 
           name: Install GIS libraries
           command: |
@@ -102,6 +95,18 @@ jobs:
           command: |
             sudo apt-get -y install git libssl-dev ssh texlive-latex-base texlive-fonts-recommended libcurl4-openssl-dev libxml2-dev
             sudo apt-get -y install pandoc pandoc-citeproc
+      - run:
+          name: Install R
+          command: |
+            sudo apt-get -y install r-base
+            sudo apt-get -y install r-cran-rgl
+      - run:
+          name: Create local library folder
+          command: |
+            R -e "dir.create(path = Sys.getenv('R_LIBS_USER'), showWarnings = FALSE, recursive = TRUE)"
+      - restore_cache:
+          keys: 
+          - cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "DESCRIPTION" }}
       - run:
           name: Install devtools and Roxygen
           command: R -e "install.packages(c('devtools', 'roxygen2'), lib = Sys.getenv('R_LIBS_USER'))"
@@ -132,27 +137,20 @@ jobs:
           command: R -e "covr::codecov()"
 
 workflows:
-  version: 2.1
-  orbs:
-    gh-pages: sugarshin/gh-pages@0.0.6
-
-  build_test_deploy:
+  conditional_deploy:
     jobs:
-      - build_test_deploy  
-    filters:
-          branches:
-            only:
-              - master
-              - main
-
-  build_test:
-    jobs:
-      - build_test              
-    filters:
-      branches:
-        only:
-          - develop
-          - /^release-.*/
+      - build_test_deploy:
+          filters:
+            branches:
+              only:
+                - master
+                - main
+      - build_test:              
+          filters:
+            branches:
+              only:
+                - develop
+                - /^release-.*/
 
 
 
