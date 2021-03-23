@@ -13,10 +13,26 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
-Imports: 
+Imports:
+    dplyr, 
     magrittr,
+    methods,
     sen2r,
-    sp
+    sp,
+    sf,
+    geojsonsf,
+    raster
 Suggests: 
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    ggplot2,
+    reshape2,
+    ggpubr,
+    plotly,
+    knitr,
+    rmarkdown,
+    pkgdown,
+    covr
+VignetteBuilder: knitr
 Config/testthat/edition: 3
+Depends: 
+    R (>= 2.10)

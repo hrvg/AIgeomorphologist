@@ -1,8 +1,11 @@
 ---
-title: "retrieving sentinel 2 products"
+title: "Retrieving Sentinel 2 products"
+author:
+- name: Hervé Guillon
+date: "`r format(Sys.time(), '%d %B %Y')`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{retrieving sentinel 2 products}
+  %\VignetteIndexEntry{Retrieving Sentinel 2 products}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,12 +14,17 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = TRUE
+  eval = TRUE,
+  fig.width = 7, 
+  fig.height = 7
 )
 ```
 
-```{r, include = FALSE}
-devtools::load_all()
+# Loading libraries
+
+```{r libraries}
+library(AIgeomorphologist)
+library(sen2r)
 ```
 
 # Getting data
@@ -24,39 +32,165 @@ devtools::load_all()
 The labelled points data are stored in `SSCT_data`. The function `to_spatial()` transform the `data.frame` into `sp` object.
 
 ```{r get points}
-labelled_points <- SSCT_data %>% to_spatial() 
-one_random_point <- labelled_points %>% sf::st_as_sf() %>% dplyr::sample_n(1)
+labelled_points <- SSCT_data %>% to_spatial() %>% sf::st_as_sf()
+one_random_point <- labelled_points %>% dplyr::sample_n(1)
 one_random_point
 ```
 
-# Loading `sen2r`
+# Listing S2 tiles
 
-```{r libraries}
-library(sen2r)
+First, we retrieve the list of the tile id for the S2 satellites over the `spatial_extent` of interest.
+
+```{r s2_list, eval = FALSE}
+id_tiles <- s2_list(
+  spatial_extent = labelled_points, 
+  time_period = "full",
+  level = "L2A",
+  availability = "online"
+  ) %>% 
+  as.data.frame() %>% 
+  dplyr::pull(id_tile) %>%
+  unique()
+saveRDS(id_tiles, file.path(out_dir, "id_tiles.Rds"))
+```
+
+```{r}
+id_tiles
 ```
 
 # Listing S2 products
 
+Second, we retrieve the entire list of the sensed tiles for the period of interest.
+This command can take a few hours to run.
 
-```{r s2_list}
-s2_products <- s2_list(
-	spatial_extent = one_random_point,
-	time_interval = c("2017-06-01", "2018-10-01"),
-	time_period = "seasonal",
-	level = "auto",
-	max_cloud = 0
-)
-print(s2_products)
-safe_getMetadata(s2_products, "sensing_datetime")	
+```{r, eval = FALSE}
+search_results <- s2_list(
+  tile = id_tiles, 
+  time_interval = c(as.Date("2019-06-01"), as.Date("2020-10-01")),
+  time_period = "full",
+  level = "L2A",
+  availability = "online"
+  ) 
+saveRDS(search_results, file.path(out_dir, "search_results.Rds"))
+```
+
+```{r}
+search_results <- search_results %>% as.data.frame()
+dim(search_results)
+colnames(search_results)
+head(search_results)
+```
+
+# Determining optimal cloud cover
+
+We can now analyze these search results so that we only download the tiles we need.
+One paramount parameter is the amount of clouds identified in the imagery.
+To define the threshold we defined `min_SAFE` as the minimum number of sensed tiles across all tiles for a given cloud threshold and `sum_SAFE` as the total of sensed tiles for a given cloud threshold.
+
+```{r optimal_clouds_threshold}
+search_stats <- search_results %>% dplyr::group_by(id_tile) %>%  dplyr::summarise(dplyr::across(dplyr::contains("clouds"), list(min = min, mean = mean))) %>% dplyr::summarise(clouds_min = min(clouds_min), clouds_mean = mean(clouds_mean))
+
+clouds_stats <- data.frame(
+    clouds_threshold = seq(ceiling(search_stats$clouds_min), ceiling(search_stats$clouds_mean), by = 0.1)
+  ) %>% 
+  dplyr::mutate(
+    min_SAFE = sapply(clouds_threshold, function(clouds_threshold){
+      search_results %>% 
+        dplyr::group_by(id_tile) %>% 
+        dplyr::group_map(~ {dplyr::filter(., clouds <= clouds_threshold) %>% nrow()}) %>%
+        unlist() %>%
+        min()
+      }),
+    sum_SAFE = sapply(clouds_threshold, function(clouds_threshold){
+      search_results %>% 
+        dplyr::group_by(id_tile) %>% 
+        dplyr::group_map(~ {dplyr::filter(., clouds <= clouds_threshold) %>% nrow()}) %>%
+        unlist() %>%
+        sum()
+      })
+  )
+```
+
+The graph below shows the trade-off between incorporating more cloud: the minimum number of sensed tiles goes up, but so does the total number of sensed tiles.
+Each tile is roughly 1 GB.
+
+```{r plot_clouds_threshold}
+p <- ggplot2::ggplot(clouds_stats %>% reshape2::melt(id.vars = c("clouds_threshold")), ggplot2::aes(x = clouds_threshold, y = value)) +
+  ggplot2::geom_point() +
+  ggplot2::facet_wrap(. ~ variable, scales = "free") +
+  ggpubr::theme_pubclean()
+plotly::ggplotly(p)
+```
+
+From these two graphs, we select the following threshold:
+```{r}
+clouds_stats %>% dplyr::filter(min_SAFE >= 20) %>% head(1)
+clouds_threshold <- clouds_stats %>% dplyr::filter(min_SAFE >= 20) %>% head(1) %>% dplyr::pull(clouds_threshold)
+```
+which is appropriate as the cloud percentage remains low, at least 20 tiles are sensed for any tile, and less than 3 TB of SAFE data have to be downloaded.
+
+The selection of the product for downloading is then done by:
+```{r}
+selected_search_results <- search_results %>% dplyr::filter(clouds <= clouds_threshold)
+dim(selected_search_results) 
+```
+
+## Sensing dates
+
+Additionally, we can visualize the sensing dates with the following codes:
+```{r}
+p <- ggplot2::ggplot(selected_search_results, ggplot2::aes(x = sensing_datetime, y = clouds, color = id_tile)) +
+ggplot2::geom_point() +
+ggpubr::theme_pubclean()
+plotly::ggplotly(p)
+```
+
+Visual inspection of the above graph tile by tile does not indicate that there is a significant skew towards a given period for any tile.
+Example of a tile with discontinuous record is 10TGK.
+The tile with the lowest average cloud cover is 
+`r selected_search_results %>% 
+  dplyr::group_by(id_tile) %>% 
+  dplyr::summarise(mean = mean(clouds)) %>%
+  dplyr::filter(mean == min(mean)) %>%
+  dplyr::pull(id_tile)
+`.
+
+## Number of sensed tiles
+
+The following graph shows the distribution of the number of sensed tiles:
+```{r}
+count_df <- data.frame(count = selected_search_results %>%
+  dplyr::group_by(id_tile) %>% 
+  dplyr::group_map(~ nrow(.)) %>% 
+  unlist()
+  )
+ggplot2::ggplot(count_df, ggplot2::aes(x = count)) +
+ggplot2::geom_density() +
+ggplot2::labs(x = "number of sensed tiles") +
+ggpubr::theme_pubclean()
+```
+
+# Downloading products
+
+Running `s2_download()` then allows to retrieve all the tile imagery provided that a `safelist` is passed as `s2_prodlist`.
+
+```{r selecting_products}
+class(search_results)
+selected_search_results <- selected_search_results %>% as("safelist")
+class(selected_search_results)
+```
+
+```{r, eval = FALSE}
+s2_download(s2_prodlist = selected_search_results, outdir = "path/to/your/outdir")
 ```
 
 
 # Products
 
-```{r download, eval = TRUE}
+```{r download, eval = FALSE}
 # Set paths
-out_dir  <- "/media/hguillon/hrvg/research/data/s2/sen2r_output/" # output folder
-safe_dir <- "/media/hguillon/hrvg/research/data/s2/sen2r_safe/" # folder to store downloaded SAFE
+out_dir  <- "F:/hguillon/research/data/s2/sen2r_output/" # output folder
+safe_dir <- "F:/hguillon/research/data/s2/sen2r_safe/" # folder to store downloaded SAFE
 
 paths <- sen2r(
   gui = FALSE,
@@ -64,15 +198,16 @@ paths <- sen2r(
   timewindow = c(as.Date("2019-06-01"), as.Date("2020-10-01")),
   timeperiod = "seasonal",
   step_atmcorr = "l2a",
-  max_cloud_safe = 20,
+  max_clouds_safe = 0.1,
   list_prods = c("BOA","SCL"),
   list_rgb = c("RGB432B"),
   list_indices = c("NDVI"),
-  extent = one_random_point,
+  extent = labelled_points,
   path_l1c = safe_dir,
   path_l2a = safe_dir,
   path_out = out_dir,
-  order_lta = FALSE
+  order_lta = FALSE,
+  clip_on_extent = TRUE
 )
 ```
 
