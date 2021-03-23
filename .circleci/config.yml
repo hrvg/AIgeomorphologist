@@ -116,7 +116,7 @@ jobs:
           name: Install package dependencies
           command: R -e "withr::with_libpaths(Sys.getenv('R_LIBS_USER'), devtools::install_deps(dep = TRUE, build = FALSE))"
       - save_cache:
-          key: cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "DESCRIPTION" }}
+          key: cache-{{ checksum "DESCRIPTION" }}
           paths:
             - ~/R   
       - run:
