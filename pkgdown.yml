@@ -1,0 +1,8 @@
+pandoc: '2.5'
+pkgdown: 1.6.1
+pkgdown_sha: ~
+articles:
+  AIgeomorphologist: AIgeomorphologist.html
+  retrieving_s2: retrieving_s2.html
+last_built: 2021-03-23T17:34Z
+
