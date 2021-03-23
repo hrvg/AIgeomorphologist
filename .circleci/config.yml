@@ -23,10 +23,12 @@ jobs:
             sudo apt-get -y install libmagick++-dev
             sudo apt-get -y install libglu1-mesa-dev freeglut3-dev mesa-common-dev
             sudo apt-get -y install libudunits2-dev
+            sudo apt-get -y install libjq-dev
+            sudo apt-get -y install libv8-dev
       - run: 
           name: Install required libraries to build R package
           command: |
-            sudo apt-get -y install git libssl-dev ssh texlive-latex-base texlive-fonts-recommended libcurl4-openssl-dev libxml2-dev
+            sudo apt-get -y install git libssl-dev texlive-latex-base texlive-fonts-recommended libcurl4-openssl-dev libxml2-dev
             sudo apt-get -y install pandoc pandoc-citeproc
       - run:
           name: Install R
