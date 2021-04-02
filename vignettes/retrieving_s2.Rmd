@@ -185,32 +185,6 @@ s2_download(s2_prodlist = selected_search_results, outdir = "path/to/your/outdir
 ```
 
 
-# Products
-
-```{r download, eval = FALSE}
-# Set paths
-out_dir  <- "F:/hguillon/research/data/s2/sen2r_output/" # output folder
-safe_dir <- "F:/hguillon/research/data/s2/sen2r_safe/" # folder to store downloaded SAFE
-
-paths <- sen2r(
-  gui = FALSE,
-  sel_sensor = c("s2a", "s2b"),
-  timewindow = c(as.Date("2019-06-01"), as.Date("2020-10-01")),
-  timeperiod = "seasonal",
-  step_atmcorr = "l2a",
-  max_clouds_safe = 0.1,
-  list_prods = c("BOA","SCL"),
-  list_rgb = c("RGB432B"),
-  list_indices = c("NDVI"),
-  extent = labelled_points,
-  path_l1c = safe_dir,
-  path_l2a = safe_dir,
-  path_out = out_dir,
-  order_lta = FALSE,
-  clip_on_extent = TRUE
-)
-```
-
 # Appendix 
 
 ## Description of Sentinel-2 MSI products
