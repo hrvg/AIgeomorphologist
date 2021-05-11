@@ -3,3 +3,4 @@
 ^docs$
 ^pkgdown$
 ^vignettes/optimal_max_cloud\.R$
+^vignettes/processing_s2\.Rmd$

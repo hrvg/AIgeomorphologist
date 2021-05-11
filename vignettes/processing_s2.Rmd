@@ -1,0 +1,132 @@
+---
+title: "Processing Sentinel 2 products"
+author:
+- name: Hervé Guillon
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Processing Sentinel 2 products}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = TRUE,
+  fig.width = 7, 
+  fig.height = 7
+)
+```
+
+# Loading libraries
+
+```{r libraries}
+library(AIgeomorphologist)
+library(sen2r)
+library(progress)
+library(foreach)
+library(doFuture)
+```
+
+# Parameters
+
+We define here the parameters corresponding to the parameters used for retrieving and downloading the SAFE tiles in this [vignette](articles/retrieving_s2.html).
+
+```{r parameters}
+safe_dir <- "G:/S2_data/SAFE/" # folder to store downloaded SAFE
+out_dir  <- "G:/S2_data/sen2r_output/" # output folder
+SAFE_dirs <- list.dirs(safe_dir, full.names = FALSE, recursive = FALSE)
+
+current_tile <- sample(id_tiles, 1)
+print(current_tile)
+
+current_dirs <- SAFE_dirs[grepl(current_tile, SAFE_dirs)]
+.out_dir <- file.path(out_dir, as.character(current_tile))
+if(!dir.exists(.out_dir)) dir.create(.out_dir)
+
+registerDoFuture()
+if(.Platform$OS.type == "unix"){
+	plan(multicore, workers = 4)
+} else {
+	plan(multisession, workers = 4)
+}
+
+library(tictoc)
+print(length(current_dirs))
+tic()
+paths <- foreach(current_dir = current_dirs) %dopar% {
+	s2_translate(file.path(safe_dir, current_dir), outdir = .out_dir, format="GTiff", subdirs = TRUE, prod_type = "BOA")
+}
+toc()
+
+all_rasters <- stars::read_stars(paths %>% unlist(), proxy = TRUE)
+
+dop <- sapply(names(all_rasters), function(str) unlist(strsplit(str, "_"))[[2]]) %>% unname()
+dop <- as.POSIXlt(dop, format = "%Y%m%d", tz = "UTC")
+
+all_rasters <- all_rasters %>% stars::st_redimension(along = list(time = dop))
+
+median_raster <- foreach(band_id = dim(all_rasters)[3], .combine = c, .inorder = TRUE) %dopar% {
+	all_rasters %>% dplyr::slice("band", band_id) %>% stars::st_apply(c("x", "y"), median, na.rm = TRUE)
+}
+
+
+# once this is done
+# 1. read all .tif into stars object
+# 2. st_slice("band", i) %>% st_apply(c("x", "y"), median, na.rm = TRUE)
+
+
+```
+
+
+
+```{r download, eval = FALSE}
+# Parameters
+labelled_points <- SSCT_data %>% to_spatial() %>% sf::st_as_sf()
+cloud_threshold <- 5.6
+time_interval <- c(as.Date("2019-06-01"), as.Date("2020-10-01"))
+time_period <- "full"
+level <- "L2A"
+availability <- "online"
+.radius <- 1000 # m
+
+# Set paths
+safe_dir <- "G:/S2_data/SAFE/" # folder to store downloaded SAFE
+out_dir  <- "G:/S2_data/sen2r_output/" # output folder
+
+pb <- progress_bar$new(format = "[:bar] :current/:total - :percent in :elapsed/:eta \n", total = nrow(labelled_points), show_after = 0)
+invisible(pb$tick(0))
+
+for (n in seq(nrow(labelled_points))){
+	current_point <- labelled_points[n, ]
+	.out_dir <- file.path(out_dir, as.character(current_point$SiteID))
+	if(!dir.exists(.out_dir)) dir.create(.out_dir)
+	paths <- sen2r(
+		gui = FALSE,
+		timewindow = time_interval,
+		timeperiod = time_period,
+		online = (availability == "online"),
+		step_atmcorr = tolower(level),
+		max_cloud_safe = cloud_threshold,
+		list_prods = c("BOA","SCL"),
+		list_rgb = c("RGB432B"),
+		list_indices = c("NDVI"),
+		extent = current_point %>% point_to_geojson_polygon(radius = .radius),
+		path_l1c = safe_dir,
+		path_l2a = safe_dir,
+		path_out = .out_dir,
+		order_lta = FALSE,
+		clip_on_extent = TRUE,
+		processing_order = "mixed",
+		thumbnails = FALSE,
+		parallel = 4,
+		preprocess = TRUE
+	)
+	pb$tick()
+	gc()
+}
+```
+
+
