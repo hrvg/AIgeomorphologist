@@ -59,7 +59,18 @@ tic()
 paths <- foreach(current_dir = current_dirs) %dopar% {
 	s2_translate(file.path(safe_dir, current_dir), outdir = .out_dir, format="GTiff", subdirs = TRUE, prod_type = "BOA")
 }
-tic()
+toc()
+
+all_rasters <- stars::read_stars(paths %>% unlist(), proxy = TRUE)
+
+dop <- sapply(names(all_rasters), function(str) unlist(strsplit(str, "_"))[[2]]) %>% unname()
+dop <- as.POSIXlt(dop, format = "%Y%m%d", tz = "UTC")
+
+all_rasters <- all_rasters %>% stars::st_redimension(along = list(time = dop))
+
+median_raster <- foreach(band_id = dim(all_rasters)[3], .combine = c, .inorder = TRUE) %dopar% {
+	all_rasters %>% dplyr::slice("band", band_id) %>% stars::st_apply(c("x", "y"), median, na.rm = TRUE)
+}
 
 
 # once this is done
