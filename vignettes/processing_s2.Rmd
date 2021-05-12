@@ -55,25 +55,27 @@ for (n in seq(nrow(labelled_points))){
 	current_point <- labelled_points[n, ]
 	.out_dir <- file.path(out_dir, as.character(current_point$SiteID))
 	if(!dir.exists(.out_dir)) dir.create(.out_dir)
-	paths <- sen2r(
-		gui = FALSE,
-		timewindow = time_interval,
-		timeperiod = time_period,
-		online = (availability == "online"),
-		step_atmcorr = tolower(level),
-		max_cloud_safe = cloud_threshold,
-		list_prods = c("BOA","SCL"),
-		extent = current_point %>% point_to_geojson_polygon(radius = .radius),
-		path_l1c = safe_dir,
-		path_l2a = safe_dir,
-		path_out = .out_dir,
-		order_lta = FALSE,
-		clip_on_extent = TRUE,
-		processing_order = "mixed",
-		thumbnails = FALSE,
-		parallel = 6,
-		preprocess = TRUE
-	)
+	paths <- tryCatch(
+		sen2r(
+			gui = FALSE,
+			timewindow = time_interval,
+			timeperiod = time_period,
+			online = (availability == "online"),
+			step_atmcorr = tolower(level),
+			max_cloud_safe = cloud_threshold,
+			list_prods = c("BOA","SCL"),
+			extent = current_point %>% point_to_geojson_polygon(radius = .radius),
+			path_l1c = safe_dir,
+			path_l2a = safe_dir,
+			path_out = .out_dir,
+			order_lta = FALSE,
+			clip_on_extent = TRUE,
+			processing_order = "mixed",
+			thumbnails = FALSE,
+			parallel = 4,
+			preprocess = TRUE
+		), 
+		error = function(e) e)
 	pb$tick()
 	gc()
 }
