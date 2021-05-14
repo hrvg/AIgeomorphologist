@@ -23,7 +23,8 @@ knitr::opts_chunk$set(
 # Loading libraries
 
 ```{r libraries}
-library(AIgeomorphologist)
+# library(AIgeomorphologist)
+devtools::load_all()
 library(sen2r)
 ```
 

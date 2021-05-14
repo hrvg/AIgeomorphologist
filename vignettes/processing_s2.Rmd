@@ -36,46 +36,73 @@ We define here the parameters corresponding to the parameters used for retrievin
 
 ```{r download, eval = FALSE}
 # Parameters
-labelled_points <- SSCT_data %>% to_spatial() %>% sf::st_as_sf()
+# labelled_points <- SSCT_data %>% to_spatial() %>% sf::st_as_sf()
 cloud_threshold <- 5.6
 time_interval <- c(as.Date("2019-06-01"), as.Date("2020-10-01"))
 time_period <- "full"
 level <- "L2A"
 availability <- "online"
-.radius <- 1000 # m
+# .radius <- 1000 # m
 
 # Set paths
 safe_dir <- "G:/S2_data/SAFE/" # folder to store downloaded SAFE
 out_dir  <- "G:/S2_data/sen2r_output/" # output folder
 
-pb <- progress_bar$new(format = "[:bar] :current/:total - :percent in :elapsed/:eta \n", total = nrow(labelled_points), show_after = 0)
+file_names <- list.files(safe_dir, full.names = TRUE)
+metadata_df <- foreach(fname = file_names, .combine = rbind) %do% {sen2r::safe_getMetadata(fname, info = "nameinfo")}
+
+pb <- progress_bar$new(format = "[:bar] :current/:total - :percent in :elapsed/:eta \n", total = length(id_tiles), show_after = 0)
 invisible(pb$tick(0))
 
-for (n in seq(nrow(labelled_points))){
-	current_point <- labelled_points[n, ]
-	.out_dir <- file.path(out_dir, as.character(current_point$SiteID))
+for (current_tile in id_tiles){
+	print(current_tile)
+	.out_dir <- file.path(out_dir, as.character(current_tile))
 	if(!dir.exists(.out_dir)) dir.create(.out_dir)
-	paths <- tryCatch(
-		sen2r(
+	file_names <- metadata_df %>% dplyr::filter(.data$id_tile == current_tile) %>% dplyr::pull(.data$name)
+	full_file_names = sapply(file_names, function(f) file.path(safe_dir, f))
+	for(fname in file_names){
+		paths <- sen2r::s2_translate(
+			infile = file.path(safe_dir, fname),
+			outdir = .out_dir,
+			prod_type = c("BOA", "SCL"),
+			overwrite = FALSE,
+			format = "GTiff"
+		)
+	}
+	pb$tick()
+	gc()
+}
+
+
+pb <- progress_bar$new(format = "[:bar] :current/:total - :percent in :elapsed/:eta \n", total = length(id_tiles), show_after = 0)
+invisible(pb$tick(0))
+
+for (n in seq(length(id_tiles))){
+	current_tile <- id_tiles[n]
+	.out_dir <- file.path(out_dir, as.character(current_tile))
+	if(!dir.exists(.out_dir)) dir.create(.out_dir)
+	# if(!file.exists(file.path(.out_dir, ".ignorelist.txt"))){
+		print(n)
+		print(as.character(current_tile))
+		paths <- sen2r(
 			gui = FALSE,
+			s2tiles_selected = current_tile,
 			timewindow = time_interval,
 			timeperiod = time_period,
-			online = (availability == "online"),
+			online = FALSE,
 			step_atmcorr = tolower(level),
 			max_cloud_safe = cloud_threshold,
 			list_prods = c("BOA","SCL"),
-			extent = current_point %>% point_to_geojson_polygon(radius = .radius),
 			path_l1c = safe_dir,
 			path_l2a = safe_dir,
 			path_out = .out_dir,
 			order_lta = FALSE,
-			clip_on_extent = TRUE,
-			processing_order = "mixed",
+			processing_order = "by_step",
+			parallel = FALSE,
 			thumbnails = FALSE,
-			parallel = 4,
 			preprocess = TRUE
-		), 
-		error = function(e) e)
+		) 
+	# }
 	pb$tick()
 	gc()
 }
@@ -85,16 +112,81 @@ for (n in seq(nrow(labelled_points))){
 dirs <- list.dirs(.out_dir, full.names = TRUE, recursive = FALSE)
 d <- dirs[grepl("BOA", dirs)]
 paths <- list.files(d, full.names = TRUE)
+file_df <- data.frame(path = as.character(paths)) %>%
+	dplyr::mutate(size_GB = sapply(paths, file.size) * 1E-9) %>% 
+	dplyr::arrange(.data$size_GB) %>%
+	dplyr::mutate(cumsum_GB = cumsum(.data$size_GB), group = 1)
+
+max_size <- Inf
+threshold_size_GB <- 4
+while(max_size > threshold_size_GB){
+	file_df$group[file_df$cumsum_GB > threshold_size_GB] <- max(file_df$group) + 1
+	file_df <- file_df %>% dplyr::group_by(group) %>% dplyr::mutate(cumsum_GB = cumsum(.data$size_GB))
+	max_size <- file_df %>% dplyr::group_by(group) %>% dplyr::summarise(max = max(cumsum_GB)) %>% dplyr::pull(max) %>% max()
+}
+
+
+foreach(g = unique(file_df$group)) %do% {
+	paths <- file_df %>% dplyr::filter(group == g) %>% dplyr::pull(path) %>% as.character()
+	dop <- sapply(sapply(paths, basename), function(str) unlist(strsplit(str, "_"))[[2]]) %>% unname()
+	dop <- as.Date(dop, format = "%Y%m%d")
+	tictoc::tic()
+	all_rasters <- stars::read_stars(paths, proxy = TRUE, RasterIO = list(bands = 1)) %>% stars::st_redimension(along = list(time = dop))
+	summary_raster <- all_rasters %>% stars::st_apply(c("x", "y"), mean, na.rm = TRUE, trim = 0.5)
+	file_out <- file.path(.out_dir, paste0(paths %>% tail(1) %>% basename))
+	stars::write_stars(summary_raster, file_out)
+	tictoc::toc()
+	file_out
+}
+
+nl <- terra::rast(paths %>% head(1)) %>% terra::nlyr()
+file_out <- file.path(.out_dir, paste0(paths %>% tail(1) %>% basename))
+tictoc::tic()
+terra::tapp(terra::rast(paths), seq(nl), mean, na.rm = TRUE, trim = 0.5, filename = file_out, overwrite = TRUE)
+tictoc::toc()
+
+terra::writeRaster(summary_raster, filename = file_out, overwrite = TRUE, gdal=c("COMPRESS=NONE"))
+
+
+
+
+
 dop <- sapply(sapply(paths, basename), function(str) unlist(strsplit(str, "_"))[[2]]) %>% unname()
 dop <- as.Date(dop, format = "%Y%m%d")
-all_rasters <- stars::read_stars(paths, along = list(time = dop))
-median_raster <- all_rasters %>% stars::st_apply(c("x", "y", "band"), median, na.rm = TRUE)
-file_out <- file.path(.out_dir, paste0(paths %>% tail(1) %>% basename))
-stars::write_stars(median_raster, file_out)
+
+
+all_rasters <- stars::read_stars(paths[1:2], proxy = FALSE, RasterIO = list(bands = 1)) %>% stars::st_redimension(along = list(time = dop))
+summary_raster <- all_rasters %>% stars::st_apply(c("x", "y"), Rfast::Median, na.rm = TRUE)
+
+
+
 path2rgb <- s2_rgb(file_out, subdirs = FALSE, outdir = .out_dir, overwrite = TRUE)
-read_stars(path2rgb) %>% st_rgb() %>% plot()
+read_stars(path2rgb) %>% st_rgb() %>% plot(downsample = c(1e2, 1e2))
+
 path2ndvi <- s2_calcindices(file_out, "NDVI", subdirs = FALSE, outdir = .out_dir, overwrite = TRUE)
-read_stars(path2ndvi) %>% plot()
+read_stars(path2ndvi) %>% plot(downsample = c(10, 10))
+
+dirs <- list.dirs(safe_dir, full.names = TRUE, recursive = FALSE)
+
+current_dirs <- dirs[grepl(current_tile, dirs)]
+
+S2_SAFE_list <- foreach(d = current_dirs) %do% {
+	list.files(path = d, pattern = ".jp2$",  full.names = TRUE, recursive = TRUE)
+} %>% unlist()
+
+S2_collection <-  create_image_collection(
+		files = S2_SAFE_list, 
+		format = 'Sentinel2_L2A', 
+		unroll_archives = TRUE, 
+		out_file = file.path(.out_dir, "S2_collection.db"))
+
+rc <- raster_cube(S2_collection)
+v1 <- cube_view(extent = extent(S2_collection), srs = srs(rc), nx = nx(rc), ny = ny(rc), dt = "P1Y", aggregation = "median")
+
+raster_cube(S2_collection) %>%
+    select_bands(c("B02", "B03", "B04")) %>%
+    reduce_time("median(B02)", "median(B03)", "median(B04)") %>%
+    plot(rgb=3:1, zlim=c(0,1800))
 
 ```
 
