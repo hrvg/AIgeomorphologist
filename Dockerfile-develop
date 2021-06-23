@@ -1,4 +1,4 @@
 FROM hrvg/aigeomorphologist:latest
-COPY . /home/docker/
-RUN cd /home/docker/ && \
-	R -e "withr::with_libpaths(Sys.getenv('R_LIBS_USER'), devtools::install_deps(dependencies = TRUE, build = FALSE))"
+COPY . /home/rstudio/project/
+RUN cd /home/rstudio/project/ && \ 
+	R -e "withr::with_libpaths('/usr/local/lib/R/site-library', devtools::install_deps(dependencies = TRUE, build = FALSE))"

@@ -17,6 +17,7 @@ RUN apt-get update && \
     tzdata \
     locales
 
+
 # DVC
 RUN apt-get install -y python3-pip && \
 	pip3 install dvc[s3]
@@ -35,11 +36,16 @@ RUN apt-get update && apt-get install -y gnupg software-properties-common curl &
 	apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" && \
 	apt-get update && apt-get install -y terraform
 
-# R AND R DEPS
-RUN R -e "dir.create(path = Sys.getenv('R_LIBS_USER'), showWarnings = FALSE, recursive = TRUE)" && \
-	R -e "install.packages(c('devtools', 'roxygen2', 'pkgdown', 'covr'), lib = Sys.getenv('R_LIBS_USER'))"
-RUN mkdir /home/docker
-COPY . /home/docker/
-RUN cd /home/docker/ && \
-	pwd && \
-	R -e "withr::with_libpaths(Sys.getenv('R_LIBS_USER'), devtools::install_deps(dependencies = TRUE, build = FALSE))"
+# R
+RUN R -e "install.packages(c('devtools', 'roxygen2', 'pkgdown', 'covr', 'lintr'), lib = '/usr/local/lib/R/site-library')"
+
+# TEX
+RUN tlmgr update --self && \
+    tlmgr install collection-latexrecommended collection-fontsrecommended
+
+
+# R PKG DEPS
+RUN mkdir /home/rstudio/project
+COPY . /home/rstudio/project/
+RUN cd /home/rstudio/project/ && \ 
+	R -e "withr::with_libpaths('/usr/local/lib/R/site-library', devtools::install_deps(dependencies = TRUE, build = FALSE))"
