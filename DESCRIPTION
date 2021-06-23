@@ -14,15 +14,16 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Imports:
-    dplyr, 
+    dplyr,
+    geojsonsf,
     magrittr,
     methods,
-    sen2r,
-    sp,
-    sf,
-    geojsonsf,
+    progress,
     raster,
-    cubelyr
+    sen2r,
+    sf,
+    sp,
+    devtools
 Suggests: 
     testthat (>= 3.0.0),
     ggplot2,

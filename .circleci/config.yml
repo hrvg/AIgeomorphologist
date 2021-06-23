@@ -83,14 +83,69 @@ jobs:
       - run:
           name: Calculate code coverage
           command: R -e "covr::codecov()"
-  r-unit-test:
-    executor: docker-develop
+  r-unit-test-latest:
+    executor: docker-latest
     steps:
       - checkout
+      - run: 
+          name: Diagnostics
+          command: |
+            whoami
+            pwd
+            ls
+            cat /etc/passwd
       - run:
           name: Unit tests
           command: |
             R -e "devtools::test(stop_on_failure = TRUE)"
+  r-static-analysis-latest:
+    executor: docker-latest
+    steps:
+      - checkout
+      - run: 
+          name: Diagnostics
+          command: |
+            whoami
+            pwd
+            ls
+            cat /etc/passwd
+      - run:
+          name: Static code analysis
+          command: |
+            R -e "devtools::install()"
+            R -e "lintr::lint_package()"
+  r-unit-test-develop:
+    executor: docker-develop
+    steps:
+      - checkout
+      - run: 
+          name: Diagnostics
+          command: |
+            whoami
+            pwd
+            ls
+            cat /etc/passwd
+      - run:
+          name: Unit tests
+          command: |
+            R -e "devtools::test(stop_on_failure = TRUE)"
+  r-static-analysis-develop:
+    executor: docker-develop
+    steps:
+      - checkout
+      - run: 
+          name: Diagnostics
+          command: |
+            whoami
+            pwd
+            ls
+            cat /etc/passwd
+      - run:
+          name: Static code analysis
+          command: |
+            R -e "devtools::install()"
+            R -e "lintr::lint_package()"
+
 
 workflows:
   build-main:
@@ -101,11 +156,23 @@ workflows:
           filters:
             branches:
               only: main
+      - r-static-analysis-latest:
+          context:
+            - docker-credentials
+          requires: 
+            - docker-build-publish-latest
+      - r-unit-test-latest:
+          context:
+            - docker-credentials
+          requires: 
+            - docker-build-publish-latest
       - r-build-latest:
           context:
             - docker-credentials
           requires: 
             - docker-build-publish-latest
+            - r-unit-test-latest
+            - r-static-analysis-latest
           filters:
             branches:
               only: main
@@ -116,28 +183,44 @@ workflows:
             - docker-credentials
           filters:
             branches:
-              only: develop
+              only: 
+                - develop
+                - /^release-.*/
+      - r-static-analysis-develop:
+          context:
+            - docker-credentials
+          requires: 
+            - docker-build-publish-develop
+      - r-unit-test-develop:
+          context:
+            - docker-credentials
+          requires: 
+            - docker-build-publish-develop
       - r-build-develop:
           context:
             - docker-credentials
           requires: 
             - docker-build-publish-develop
+            - r-static-analysis-develop
+            - r-unit-test-develop
           filters:
             branches:
               only: 
                 - develop
-      - r-unit-test:
-          context:
-            - docker-credentials
-          filters:
-            branches:
-              only: 
-                - /^feature-.*/
-                - /^experiment-.*/
-      - r-build-develop:
-          context:
-            - docker-credentials
-          filters:
-            branches:
-              only: 
                 - /^release-.*/
+  static-test-unit-test:
+    jobs:
+      - r-static-analysis-develop:
+          context:
+            - docker-credentials
+          filters:
+            branches:
+              only:
+                - /^feature-.*/
+      - r-unit-test-develop:
+          context:
+            - docker-credentials
+          filters:
+            branches:
+              only:
+                - /^feature-.*/

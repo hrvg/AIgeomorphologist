@@ -15,12 +15,12 @@ Search results between "2019-06-01" and "2020-10-01" for the id_tiles
 }
 \details{
 The following code generates the data:\preformatted{search_results <- s2_list(
-  tile = id_tiles, 
+  tile = id_tiles,
   time_interval = c(as.Date("2019-06-01"), as.Date("2020-10-01")),
   time_period = "full",
   level = "L2A",
   availability = "online"
-) 
+)
 }
 }
 \keyword{dataset}
