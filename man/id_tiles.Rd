@@ -16,12 +16,12 @@ Sentinel-2 tile ids for the statewide channel type dataset
 \details{
 The following code generates the data:\preformatted{labelled_points <- SSCT_data \%>\% to_spatial() \%>\% sf::st_as_sf()
 id_tiles <- s2_list(
-  spatial_extent = labelled_points, 
+  spatial_extent = labelled_points,
   time_period = "full",
   level = "L2A",
   availability = "online"
-  ) \%>\% 
-  as.data.frame() \%>\% 
+  ) \%>\%
+  as.data.frame() \%>\%
   dplyr::pull(id_tile) \%>\%
   unique()
 }
