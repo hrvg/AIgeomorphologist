@@ -35,8 +35,8 @@ library(doFuture)
 We define here the parameters corresponding to the parameters used for retrieving and downloading the SAFE tiles in this [vignette](articles/retrieving_s2.html).
 
 ```{r parameters}
-safe_dir <- "G:/S2_data/SAFE/" # folder to store downloaded SAFE
-out_dir  <- "G:/S2_data/sen2r_output/" # output folder
+safe_dir <- "/media/hguillon/UCD eFlow BigData1/S2_data/SAFE/" # folder to store downloaded SAFE
+out_dir  <- "/media/hguillon/UCD eFlow BigData1/S2_data/sen2r_output/" # output folder
 SAFE_dirs <- list.dirs(safe_dir, full.names = FALSE, recursive = FALSE)
 
 current_tile <- sample(id_tiles, 1)
