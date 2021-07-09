@@ -34,4 +34,9 @@ for(x in unique(labelled_points$label)){
   if(!dir.exists(dname)) dir.create(dname)
 }
 
-deep_learning_images <- extract_images(safe_dir, id_tiles %>% unique(), labelled_points, .radius = 640)
+deep_learning_images <- extract_images(
+  safe_dir,
+  id_tiles %>% unique(),
+  labelled_points,
+  .radius = 640
+  )

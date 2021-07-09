@@ -15,18 +15,22 @@ extract_images <- function(safe_dir, id_tiles, labelled_points, .radius = 640){
   doFuture::registerDoFuture()
   n_cores <- future::availableCores() - 2
   if(.Platform$OS.type == "unix"){
-    future::plan("multicore", workers = n_cores)
+    future::plan(future::multicore, workers = n_cores)
   } else {
-    future::plan("multisession", workers = n_cores)
+    future::plan(future::multisession, workers = n_cores)
   }
 
-  pb_tiles <- progress::progress_bar$new(format = "[:bar] :current/:total - :percent in :elapsed/:eta \n", total = length(id_tiles), show_after = 0)
+  pb_tiles <- progress::progress_bar$new(
+    format = "[:bar] :current/:total - :percent in :elapsed/:eta \n",
+    total = length(id_tiles),
+    show_after = 0
+    )
   invisible(pb_tiles$tick(0))
   res <- foreach(k = seq_along(id_tiles), .combine = rbind) %do% {
     current_tile <- id_tiles[[k]]
     current_dirs <- safe_dirs[grepl(current_tile, safe_dirs)]
     pgr_dirs <- progressr::progressor(along = current_dirs)
-    res <- foreach(j = seq_along(current_dirs), .inorder = FALSE, .combine = rbind) %dopar% {
+    res <- foreach(j = seq_along(current_dirs), .inorder = FALSE, .combine = rbind) %do% {
       safe_dir <- current_dirs[[j]]
       dop <- sen2r::safe_getMetadata(safe_dir, info = "fileinfo") %>% 
         dplyr::pull(.data$sensing_datetime) %>%
@@ -60,8 +64,7 @@ extract_images <- function(safe_dir, id_tiles, labelled_points, .radius = 640){
         sub = 4
         )
       points_in_tile <- labelled_points %>% dplyr::filter(id_tile == current_tile)
-      # pgr_pts <- progressr::progressor(nrow(points_in_tile))
-      res <- foreach(i = seq(nrow(points_in_tile)), .combine = rbind) %do% {
+      res <- foreach(i = seq(nrow(points_in_tile)), .combine = rbind) %dopar% {
         current_point <- points_in_tile[i, ]
         current_polygon <- current_point %>%
         point_to_polygon(radius = .radius, endCapStyle = "SQUARE") %>%
@@ -92,16 +95,14 @@ extract_images <- function(safe_dir, id_tiles, labelled_points, .radius = 640){
           tile_id = current_tile,
           fpath = fpath
           )
-        # pgr_pts(sprintf("i=%g", i))
         return(df)
       }
       pgr_dirs(sprintf("j=%g", j))
       return(res)
     }
-    # pgr_tiles(sprintf("k=%g", k))
     pb_tiles$tick()
     return(res)
   } 
-  future::plan("sequential")
+  future::plan(future::sequential)
   return(res)
 }
