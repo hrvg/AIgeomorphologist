@@ -1,4 +1,7 @@
 devtools::load_all()
+library(foreach)
+library(doFuture)
+library(progressr)
 
 if (as.numeric(R.version$major) >= 4) {
   progressr::handlers(global = TRUE)
