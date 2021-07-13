@@ -1,0 +1,5 @@
+devtools::load_all()
+labelled_points <- SSCT_data %>% to_spatial() %>% sf::st_as_sf()
+ind <- sapply(sf::st_intersects(labelled_points, sen2r::s2_tiles()), function(z) if (length(z)==0) NA_integer_ else z[1])
+id_tiles <- sen2r::s2_tiles()[ind, ] %>% dplyr::pull(tile_id) %>% unique()
+usethis::use_data(id_tiles, overwrite = TRUE)

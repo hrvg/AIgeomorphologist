@@ -23,7 +23,8 @@ knitr::opts_chunk$set(
 # Loading libraries
 
 ```{r libraries}
-library(AIgeomorphologist)
+# library(AIgeomorphologist)
+devtools::load_all()
 library(sen2r)
 ```
 
@@ -42,16 +43,9 @@ one_random_point
 First, we retrieve the list of the tile id for the S2 satellites over the `spatial_extent` of interest.
 
 ```{r s2_list, eval = FALSE}
-id_tiles <- s2_list(
-  spatial_extent = labelled_points, 
-  time_period = "full",
-  level = "L2A",
-  availability = "online"
-  ) %>% 
-  as.data.frame() %>% 
-  dplyr::pull(id_tile) %>%
-  unique()
-saveRDS(id_tiles, file.path(out_dir, "id_tiles.Rds"))
+ind <- sapply(sf::st_intersects(labelled_points, sen2r::s2_tiles()), function(z) if (length(z)==0) NA_integer_ else z[1])
+id_tiles <- sen2r::s2_tiles()[ind, ] %>% dplyr::pull(tile_id) %>% unique()
+usethis::use_data(id_tiles, overwrite = TRUE)
 ```
 
 ```{r}
@@ -67,11 +61,12 @@ This command can take a few hours to run.
 search_results <- s2_list(
   tile = id_tiles, 
   time_interval = c(as.Date("2019-06-01"), as.Date("2020-10-01")),
+  server = "gcloud",
   time_period = "full",
   level = "L2A",
   availability = "online"
-  ) 
-saveRDS(search_results, file.path(out_dir, "search_results.Rds"))
+  )
+usethis::use_data(search_results, overwrite = TRUE)
 ```
 
 ```{r}
@@ -124,10 +119,11 @@ plotly::ggplotly(p)
 
 From these two graphs, we select the following threshold:
 ```{r}
-clouds_stats %>% dplyr::filter(min_SAFE >= 20) %>% head(1)
-clouds_threshold <- clouds_stats %>% dplyr::filter(min_SAFE >= 20) %>% head(1) %>% dplyr::pull(clouds_threshold)
+sensing_limit <- 30
+clouds_stats %>% dplyr::filter(min_SAFE > sensing_limit) %>% head(1)
+clouds_threshold <- clouds_stats %>% dplyr::filter(min_SAFE > sensing_limit) %>% head(1) %>% dplyr::pull(clouds_threshold)
 ```
-which is appropriate as the cloud percentage remains low, at least 20 tiles are sensed for any tile, and less than 3 TB of SAFE data have to be downloaded.
+which is appropriate as the cloud percentage remains low, at least `r sensing_limit` tiles are sensed for any tile, and less than 3 TB of SAFE data have to be downloaded.
 
 The selection of the product for downloading is then done by:
 ```{r}

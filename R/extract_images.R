@@ -36,7 +36,7 @@ extract_images <- function(safe_dir, id_tiles, labelled_points, .radius = 640){
     show_after = 0
     )
     invisible(pb_dirs$tick(0))
-    res <- foreach(j = seq_along(current_dirs), .inorder = FALSE, .combine = rbind) %do% {
+    res <- foreach(j = seq_along(current_dirs), .combine = rbind) %do% {
       safe_dir <- current_dirs[[j]]
       dop <- sen2r::safe_getMetadata(safe_dir, info = "fileinfo") %>% 
         dplyr::pull(.data$sensing_datetime) %>%
@@ -72,16 +72,6 @@ extract_images <- function(safe_dir, id_tiles, labelled_points, .radius = 640){
       points_in_tile <- labelled_points %>% dplyr::filter(id_tile == current_tile)
       res <- foreach(i = seq(nrow(points_in_tile)), .combine = rbind) %dopar% {
         current_point <- points_in_tile[i, ]
-        current_polygon <- current_point %>%
-        point_to_polygon(radius = .radius, endCapStyle = "SQUARE") %>%
-        sf::st_transform(sf::st_crs(.s2_10))
-        s2_10 <- .s2_10[current_polygon] %>% stars::st_as_stars()
-        s2_20 <- .s2_20[current_polygon] %>% stars::st_as_stars() 
-        s2_20 <- s2_20[,,,seq(6)] %>% stars::st_warp(s2_10)
-        s2_60 <- .s2_60[current_polygon] %>% stars::st_as_stars() 
-        s2_60 <- s2_60[,,,seq(2)] %>% stars::st_warp(s2_10)
-        s2_tci <- .s2_tci[current_polygon] %>% stars::st_as_stars() 
-        all_s2 <- c(s2_10, s2_20, s2_60, s2_tci, along = "band")
         fpath <- file.path(
           out_dir,
           current_point$label,
@@ -93,7 +83,19 @@ extract_images <- function(safe_dir, id_tiles, labelled_points, .radius = 640){
             current_tile,".tif"
             )
           )
-        stars::write_stars(all_s2, fpath)
+        if (!file.exists(fpath)) {
+          current_polygon <- current_point %>%
+          point_to_polygon(radius = .radius, endCapStyle = "SQUARE") %>%
+          sf::st_transform(sf::st_crs(.s2_10))
+          s2_10 <- .s2_10[current_polygon] %>% stars::st_as_stars()
+          s2_20 <- .s2_20[current_polygon] %>% stars::st_as_stars() 
+          s2_20 <- s2_20[,,,seq(6)] %>% stars::st_warp(s2_10)
+          s2_60 <- .s2_60[current_polygon] %>% stars::st_as_stars() 
+          s2_60 <- s2_60[,,,seq(2)] %>% stars::st_warp(s2_10)
+          s2_tci <- .s2_tci[current_polygon] %>% stars::st_as_stars() 
+          all_s2 <- c(s2_10, s2_20, s2_60, s2_tci, along = "band")
+          stars::write_stars(all_s2, fpath)
+        }
         df <- data.frame(
           SiteID = current_point$SiteID, 
           label = current_point$label, 
