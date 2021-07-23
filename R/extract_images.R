@@ -12,6 +12,8 @@ extract_images <- function(safe_dir, id_tiles, labelled_points, .radius = 640){
   # parse dir
   safe_dirs <- list.dirs(safe_dir, full.names = TRUE, recursive = FALSE)
 
+  print(paste("extract_images found", length(safe_dirs), "SAFE archives."))
+
   # setting up parallelization
   doFuture::registerDoFuture()
   n_cores <- future::availableCores() - 2
