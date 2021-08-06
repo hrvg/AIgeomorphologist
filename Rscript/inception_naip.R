@@ -84,7 +84,6 @@ train_ind <- block_cv$rowname %>% as.numeric()
 test_ind <- seq_along(labels)[-train_ind]
 table(labels[train_ind])
 
-
 hg_data <- list(
   train = list(
     x = all_images[train_ind, , , ],
@@ -97,12 +96,12 @@ hg_data <- list(
 c(train_images, train_labels) %<-% hg_data$train
 c(test_images, test_labels) %<-% hg_data$test
 
-
 # create the base pre-trained model
 datagen <- image_data_generator(
-  horizontal_flip = TRUE,
-  vertical_flip = FALSE,
-  preprocessing_function = inception_resnet_v2_preprocess_input
+  # horizontal_flip = TRUE,
+  # vertical_flip = FALSE,
+  preprocessing_function = xception_preprocess_input
+)
 
 batch_size <- 8
 datagen %>% fit_image_data_generator(train_images)
@@ -110,7 +109,7 @@ training_image_flow <- flow_images_from_data(train_images, train_labels, datagen
 validation_image_flow <- flow_images_from_data(test_images, test_labels, datagen, batch_size = batch_size)
 
 input_tensor <- layer_input(shape = dim(train_images) %>% tail(3))
-base_model <- application_inception_resnet_v2(
+base_model <- application_xception(
   input_shape = dim(train_images) %>% tail(3),
   weights = 'imagenet',
   include_top = FALSE,
@@ -119,8 +118,11 @@ base_model <- application_inception_resnet_v2(
 
 # add our custom layers
 predictions <- base_model$output %>% 
-  layer_global_average_pooling_2d() %>% 
-  layer_dense(units = 1024, activation = 'relu') %>% 
+  layer_global_max_pooling_2d() %>% 
+  layer_dense(units = 64, activation = 'relu') %>% 
+  layer_batch_normalization() %>%
+  layer_dense(units = 32, activation = 'relu') %>% 
+  layer_dense(units = 16, activation = 'relu') %>% 
   layer_dense(units = 10, activation = 'softmax')
 
 # this is the model we will train
@@ -130,17 +132,31 @@ model <- keras_model(inputs = base_model$input, outputs = predictions)
 # i.e. freeze all convolutional InceptionV3 layers
 freeze_weights(base_model)
 
+
+# create custom metric to wrap metric with parameter
+metric_top_3_categorical_accuracy <-
+  custom_metric("top_3_categorical_accuracy", function(y_true, y_pred) {
+    metric_top_k_categorical_accuracy(y_true, y_pred, k = 3)
+})
+
+# create custom metric to wrap metric with parameter
+metric_top_5_categorical_accuracy <-
+  custom_metric("top_5_categorical_accuracy", function(y_true, y_pred) {
+    metric_top_k_categorical_accuracy(y_true, y_pred, k = 5)
+})
+
 # compile the model (should be done *after* setting layers to non-trainable)
 model %>% compile(
   optimizer = 'rmsprop', 
   loss = "sparse_categorical_crossentropy",
-  metrics = "accuracy"
+  metrics = c("accuracy", metric_top_3_categorical_accuracy, metric_top_5_categorical_accuracy)
 )
 
 
-epochs <- 10
+n_epochs <- 100
 history <- model %>% fit(
   training_image_flow,
+  epochs = n_epochs,
   steps_per_epoch = training_image_flow$n / training_image_flow$batch_size,
   validation_data = validation_image_flow,
   validation_steps = validation_image_flow$n / validation_image_flow$batch_size
