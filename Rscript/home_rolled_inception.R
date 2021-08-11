@@ -15,8 +15,8 @@ labels <- deep_learning_images %>%
 class_names <- labels %>% unique() %>% sort()
 class_names <- paste0("CA-", class_names)
 
-nx <- ny <- 384
-all_images <- get_deep_learning_images(deep_learning_images, nx, ny)
+nx <- ny <- 128
+all_images <- get_deep_learning_images(deep_learning_images, nx, ny, nband = seq(4))
 
 ind_na <- which(all_images %>% is.na)
 labels <- labels[-ind_na]
@@ -28,7 +28,7 @@ all_images <- abind::abind(all_images, along = 0)
 dim(all_images)
 
 # stratified block holdout
-split_ratio <- 0.9
+split_ratio <- 0.8
 block_cv <- deep_learning_images[-ind_na, ] %>%
   # tibble::rownames_to_column() %>%
   dplyr::mutate(rowname = seq(nrow(.))) %>%
@@ -45,50 +45,53 @@ table(labels[train_ind])
 hg_data <- list(
   train = list(
     x = all_images[train_ind, , , ],
-    y = labels[train_ind] - 1)
+    y = labels[train_ind] - 1) # python convention
   ,
   test = list(
     x = all_images[test_ind, , , ],
-    y = labels[test_ind] - 1)
+    y = labels[test_ind] - 1) # python convention
   )
 c(train_images, train_labels) %<-% hg_data$train
 c(test_images, test_labels) %<-% hg_data$test
 
 # create the base pre-trained model
 datagen <- image_data_generator(
-  # horizontal_flip = TRUE,
-  # vertical_flip = FALSE,
-  preprocessing_function = xception_preprocess_input
+  horizontal_flip = TRUE
 )
 
-batch_size <- 8
+batch_size <- 16
 datagen %>% fit_image_data_generator(train_images)
 training_image_flow <- flow_images_from_data(train_images, train_labels, datagen, batch_size = batch_size)
 validation_image_flow <- flow_images_from_data(test_images, test_labels, datagen, batch_size = batch_size)
 
-input_tensor <- layer_input(shape = dim(train_images) %>% tail(3))
-base_model <- application_xception(
-  input_shape = dim(train_images) %>% tail(3),
-  weights = 'imagenet',
-  include_top = FALSE,
-  input_tensor = input_tensor,
-  pooling = "avg"
-  )
+inception_module <- function(input_tensor) {
+  tower_1 <- input_tensor %>% 
+    layer_conv_2d(filters = 64, kernel_size = c(1, 1), padding='same', activation='relu') %>% 
+    layer_conv_2d(filters = 64, kernel_size = c(3, 3), padding='same', activation='relu')
+  tower_2 <- input_tensor %>% 
+    layer_conv_2d(filters = 64, kernel_size = c(1, 1), padding='same', activation='relu') %>% 
+    layer_conv_2d(filters = 64, kernel_size = c(5, 5), padding='same', activation='relu')
+  tower_3 <- input_tensor %>% 
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(1, 1), padding = 'same') %>% 
+    layer_conv_2d(filters = 64, kernel_size = c(1, 1), padding='same', activation='relu')
+  layer_out <- layer_concatenate(list(tower_1, tower_2, tower_3), axis = 1)
+  return(layer_out)
+}
 
-# add our custom layers
-predictions <- base_model$output %>% 
-  layer_dense(units = 128, activation = 'relu') %>% 
+visible <- layer_input(shape = dim(train_images) %>% tail(3))
+output <- visible %>%
+  layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = 'relu') %>%
+  inception_module() %>%
+  layer_max_pooling_2d() %>% 
+  inception_module() %>%
+  layer_global_average_pooling_2d() %>% 
   layer_dense(units = 64, activation = 'relu') %>% 
   layer_batch_normalization() %>%
   layer_dense(units = 32, activation = 'relu') %>% 
   layer_dense(units = 10, activation = 'softmax')
+model <- keras_model(visible, output)
 
-# this is the model we will train
-model <- keras_model(inputs = base_model$input, outputs = predictions)
-
-# first: train only the top layers (which were randomly initialized)
-# i.e. freeze all convolutional InceptionV3 layers
-freeze_weights(base_model)
+summary(model)
 
 # create custom metric to wrap metric with parameter
 metric_top_1_categorical_accuracy <-
@@ -110,7 +113,7 @@ metric_top_5_categorical_accuracy <-
 
 # compile the model (should be done *after* setting layers to non-trainable)
 model %>% compile(
-  optimizer = 'rmsprop', 
+  optimizer = optimizer_nadam(), 
   loss = "sparse_categorical_crossentropy",
   metrics = c(
     "accuracy", 
