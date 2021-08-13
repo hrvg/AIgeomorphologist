@@ -123,7 +123,7 @@ model %>% compile(
   )
 )
 
-n_epochs <- 30
+n_epochs <- 1000
 history <- model %>% fit(
   training_image_flow,
   epochs = n_epochs,

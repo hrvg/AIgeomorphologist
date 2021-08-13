@@ -2,6 +2,7 @@ devtools::load_all()
 library(progressr)
 handlers(global = TRUE)
 handlers("progress")
+library(tensorflow)
 library(keras)
 
 img_dir <- "/media/hguillon/datadrive/deep_learning_images_naip/" # output folder
@@ -25,10 +26,10 @@ if (length(ind_na) >= 1) {
 }
 input_dim <- dim(all_images[[1]])
 all_images <- abind::abind(all_images, along = 0)
-dim(all_images)
+dim(all_images) %>% print()
 
 # stratified block holdout
-split_ratio <- 0.9
+split_ratio <- 0.8
 block_cv <- deep_learning_images[-ind_na, ] %>%
   # tibble::rownames_to_column() %>%
   dplyr::mutate(rowname = seq(nrow(.))) %>%
@@ -40,7 +41,7 @@ block_cv <- deep_learning_images[-ind_na, ] %>%
   })
 train_ind <- block_cv$rowname %>% as.numeric()
 test_ind <- seq_along(labels)[-train_ind]
-table(labels[train_ind])
+table(labels[train_ind]) %>% print()
 
 hg_data <- list(
   train = list(
@@ -56,19 +57,19 @@ c(test_images, test_labels) %<-% hg_data$test
 
 # create the base pre-trained model
 datagen <- image_data_generator(
-  # horizontal_flip = TRUE,
-  # vertical_flip = FALSE,
-  preprocessing_function = xception_preprocess_input
+  horizontal_flip = TRUE,
+  vertical_flip = TRUE,
+  preprocessing_function = mobilenet_preprocess_input
 )
 
-batch_size <- 8
+batch_size <- 16
 datagen %>% fit_image_data_generator(train_images)
 training_image_flow <- flow_images_from_data(train_images, train_labels, datagen, batch_size = batch_size)
 validation_image_flow <- flow_images_from_data(test_images, test_labels, datagen, batch_size = batch_size)
 
 input_tensor <- layer_input(shape = dim(train_images) %>% tail(3))
-base_model <- application_xception(
-  input_shape = dim(train_images) %>% tail(3),
+base_model <- application_mobilenet(
+  # input_shape = dim(train_images) %>% tail(3),
   weights = 'imagenet',
   include_top = FALSE,
   input_tensor = input_tensor,
@@ -77,10 +78,10 @@ base_model <- application_xception(
 
 # add our custom layers
 predictions <- base_model$output %>% 
-  layer_dense(units = 128, activation = 'relu') %>% 
-  layer_dense(units = 64, activation = 'relu') %>% 
-  layer_batch_normalization() %>%
-  layer_dense(units = 32, activation = 'relu') %>% 
+  # layer_dense(units = 128, activation = 'relu') %>% 
+  # layer_dense(units = 64, activation = 'relu') %>% 
+  # layer_batch_normalization() %>%
+  # layer_dense(units = 32, activation = 'relu') %>% 
   layer_dense(units = 10, activation = 'softmax')
 
 # this is the model we will train
@@ -90,39 +91,36 @@ model <- keras_model(inputs = base_model$input, outputs = predictions)
 # i.e. freeze all convolutional InceptionV3 layers
 freeze_weights(base_model)
 
-# create custom metric to wrap metric with parameter
-metric_top_1_categorical_accuracy <-
-  custom_metric("top_1_categorical_accuracy", function(y_true, y_pred) {
-    metric_top_k_categorical_accuracy(y_true, y_pred, k = 1)
-})
+# Function for decaying the learning rate.
+# You can define any decay function you need.
+decay <- function(epoch, lr) {
+  if (epoch < 30) 1e-2
+    else if (epoch >= 30 && epoch < 60) 1e-3
+      else 1e-5
+}
 
-# create custom metric to wrap metric with parameter
-metric_top_3_categorical_accuracy <-
-  custom_metric("top_3_categorical_accuracy", function(y_true, y_pred) {
-    metric_top_k_categorical_accuracy(y_true, y_pred, k = 3)
-})
-
-# create custom metric to wrap metric with parameter
-metric_top_5_categorical_accuracy <-
-  custom_metric("top_5_categorical_accuracy", function(y_true, y_pred) {
-    metric_top_k_categorical_accuracy(y_true, y_pred, k = 5)
-})
+callbacks <- list(
+    callback_progbar_logger(),
+    callback_learning_rate_scheduler(decay)
+)
 
 # compile the model (should be done *after* setting layers to non-trainable)
 model %>% compile(
-  optimizer = 'rmsprop', 
+  optimizer = optimizer_sgd(
+    lr = 0.01,
+    momentum = 0.9,
+    decay = 0.0001
+    ), 
   loss = "sparse_categorical_crossentropy",
-  metrics = c(
-    "accuracy", 
-    metric_top_1_categorical_accuracy,
-    metric_top_3_categorical_accuracy,
-    metric_top_5_categorical_accuracy
-  )
+  metrics = c("accuracy")
 )
 
-n_epochs <- 30
+model %>% summary() %>% print()
+
+n_epochs <- 5000
 history <- model %>% fit(
   training_image_flow,
+  verbose = 1,
   epochs = n_epochs,
   steps_per_epoch = training_image_flow$n / training_image_flow$batch_size,
   validation_data = validation_image_flow,
